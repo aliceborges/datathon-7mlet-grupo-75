@@ -33,9 +33,9 @@ def process_telemarketing_data(input_dir: Path, output_dir: Path, files: list) -
             logging.error(f"Erro inesperado no ficheiro {file_name}: {e}")
 
 if __name__ == "__main__":
-    PROJECT_DIR = Path(__file__).resolve().parents[2]
-    INPUT_DIR = PROJECT_DIR / "datathon-7mlet-grupo-75" / "data" / "kaggle"
-    OUTPUT_DIR = PROJECT_DIR / "datathon-7mlet-grupo-75" / "data" / "processed"
+    PROJECT_DIR = Path(__file__).resolve().parent.parent
+    INPUT_DIR = PROJECT_DIR / "data" / "kaggle"
+    OUTPUT_DIR = PROJECT_DIR / "data" / "processed"
 
     FILES_TO_PROCESS = ["train.csv", "test.csv"]
 

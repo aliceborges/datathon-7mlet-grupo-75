@@ -44,7 +44,26 @@ Copie o arquivo de configuração de exemplo e preencha as credenciais necessár
     # Linux/macOS
     cp .env.example .env
 
-### 4. Validação Inicial
+### 4. Ingestão de Dados (Kaggle)
+O projeto requer a base de dados original para alimentar o pipeline de processamento.
+1. Acesse o link: https://www.kaggle.com/datasets/aguado/telemarketing-jyb-dataset/data
+2. Baixe os arquivos `train.csv` e `test.csv`.
+3. Coloque ambos os arquivos no diretório `data/kaggle/` do projeto.
+4. Execute o script de ingestão para padronizar os cabeçalhos e limpar identificadores sem valor preditivo:
+    python data/make_dataset.py
+
+Os arquivos limpos (`train_clean.csv` e `test_clean.csv`) serão gerados automaticamente na pasta `data/processed/`.
+
+### 5. Geração de Enriquecimento Sintético
+Após gerar os dados processados, crie os artefatos sintéticos executando:
+    python data/synthetic_enrichment/generate_synthetic_data.py --seed 42
+
+Isso cria:
+- `data/synthetic_enrichment/arm_catalog.csv`
+- `data/synthetic_enrichment/contexts.csv`
+- `data/synthetic_enrichment/impressions.csv`
+
+### 6. Validação Inicial
 Execute a suíte de testes para garantir que o ambiente está configurado corretamente:
     pytest
 
