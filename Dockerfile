@@ -19,6 +19,9 @@ RUN mkdir -p src && touch src/__init__.py \
     && rm -rf src
 
 COPY src ./src
+COPY evaluation ./evaluation
+COPY data/rag_corpus ./data/rag_corpus
+COPY data/golden_set ./data/golden_set
 
 EXPOSE 8000
 
