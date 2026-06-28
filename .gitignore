@@ -238,6 +238,7 @@ coverage.xml
 data/*
 !data/**/README.md
 !data/**/.gitkeep
+!data/golden_set/
 !data/golden_set/*.jsonl
 !data/rag_corpus/
 !data/rag_corpus/*.md
