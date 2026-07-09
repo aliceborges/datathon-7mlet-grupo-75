@@ -90,5 +90,6 @@ Se preferir uma execução mais ampla, rode `pytest` na raiz do repositório.
 ## Limitações Conhecidas
 * O projeto utiliza dados sintéticos baseados em conjuntos públicos do Kaggle e não processa dados reais de clientes (PII).
 * A API do agente depende de Azure OpenAI; sem essas credenciais, apenas o stub de recomendação fica disponível.
+* A camada processada do Kaggle remove `id`, `duration` e outras colunas auxiliares, e o preprocessing valida o schema final para evitar vazamento temporal.
 * A simulação de delayed rewards (recompensas atrasadas) assume hipóteses e sementes fixas documentadas nas etapas de experimento.
 * A plataforma foi desenvolvida para fins de experimentação em ambiente simulado e não atende, no seu estado atual, aos requisitos de latência para um sistema bancário de alta frequência em tempo real.
