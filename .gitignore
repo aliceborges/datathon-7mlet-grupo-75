@@ -236,10 +236,14 @@ coverage.xml
 .ruff_cache/
 .mypy_cache/
 data/*
+!data/golden_set/
+!data/rag_corpus/
+!data/synthetic_enrichment/
+data/**/*.csv
+!data/**/*.py
 !data/**/README.md
 !data/**/.gitkeep
 !data/golden_set/*.jsonl
-!data/rag_corpus/
 !data/rag_corpus/*.md
 *.pkl
 *.pt
