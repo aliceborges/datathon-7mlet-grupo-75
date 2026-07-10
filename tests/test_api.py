@@ -24,6 +24,9 @@ class _FakeAgentExecutor:
 def client(monkeypatch, tmp_path):
     audit_path = tmp_path / "audit.jsonl"
     monkeypatch.setenv("AUDIT_LOG_PATH", str(audit_path))
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://example.openai.azure.com")
+    monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
     monkeypatch.setattr("src.api.main.build_default_pipeline", lambda: _FakePipeline())
     monkeypatch.setattr(
         "src.api.main.build_react_agent", lambda tools: _FakeAgentExecutor()
@@ -59,6 +62,28 @@ def test_health_ready_when_resources_loaded(client):
     assert body["checks"]["agent"] is True  # fixture mocka o agent
 
 
+def test_startup_skips_agent_without_azure_credentials(monkeypatch, tmp_path):
+    monkeypatch.setenv("DISABLE_DOTENV", "1")
+    monkeypatch.delenv("AZURE_OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("AZURE_OPENAI_AD_TOKEN", raising=False)
+    monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
+    monkeypatch.delenv("AZURE_OPENAI_DEPLOYMENT", raising=False)
+    monkeypatch.setenv("AUDIT_LOG_PATH", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setattr("src.api.main.build_default_pipeline", lambda: _FakePipeline())
+    monkeypatch.setattr(
+        "src.api.main.build_react_agent",
+        lambda tools: (_ for _ in ()).throw(AssertionError("build_react_agent should not be called")),
+    )
+
+    from src.api.main import create_app
+
+    app = create_app()
+    with TestClient(app) as c:
+        assert c.app.state.resources["agent"] is None
+        r = c.post("/agent", json={"question": "Qual oferta pro cliente C001?"})
+        assert r.status_code == 503
+
+
 def test_health_ready_returns_503_when_policy_missing(monkeypatch, tmp_path):
     monkeypatch.setenv("AUDIT_LOG_PATH", str(tmp_path / "audit.jsonl"))
     monkeypatch.setattr("src.api.main.load_policy", lambda: None)
@@ -81,6 +106,22 @@ def test_metrics_endpoint_exposed(client):
     r = client.get("/metrics")
     assert r.status_code == 200
     assert "python_info" in r.text or "process_" in r.text
+
+
+def test_openapi_schema_exposed(client):
+    r = client.get("/openapi.json")
+    assert r.status_code == 200, r.text
+    schema = r.json()
+    assert schema["info"]["title"] == "Datathon Grupo 75 - API de Decisão"
+    assert "/predict" in schema["paths"]
+    assert "/agent" in schema["paths"]
+    assert "/health/ready" in schema["paths"]
+
+
+def test_swagger_ui_exposed(client):
+    r = client.get("/docs")
+    assert r.status_code == 200
+    assert "Swagger UI" in r.text
 
 
 def test_predict_with_default_offers(client):

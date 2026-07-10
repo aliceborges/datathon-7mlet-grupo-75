@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
+import socket
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 from typing import Protocol
 
 import numpy as np
@@ -20,6 +22,27 @@ DEFAULT_OFFERS = [
     "savings_premium",
     "insurance_basic",
 ]
+
+
+def _tracking_uri_is_reachable(tracking_uri: str) -> bool:
+    """Retorna True quando o host/porta do tracking URI responde a uma conexão TCP."""
+    parsed = urlparse(tracking_uri)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return True
+
+    try:
+        port = parsed.port
+    except ValueError:
+        return False
+
+    if port is None:
+        port = 443 if parsed.scheme == "https" else 80
+
+    try:
+        with socket.create_connection((parsed.hostname, port), timeout=1.0):
+            return True
+    except OSError:
+        return False
 
 
 class RecommendationPolicy(Protocol):
@@ -89,6 +112,13 @@ def load_policy() -> RecommendationPolicy:
 
     if not tracking_uri or not model_name:
         logger.info("MLflow não configurado, usando ThompsonSamplingStub")
+        return ThompsonSamplingStub()
+
+    if not _tracking_uri_is_reachable(tracking_uri):
+        logger.info(
+            "MLflow Tracking indisponível em %s, usando ThompsonSamplingStub",
+            tracking_uri,
+        )
         return ThompsonSamplingStub()
 
     try:

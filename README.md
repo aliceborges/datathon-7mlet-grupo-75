@@ -18,8 +18,8 @@ Plataforma de experimentação adaptativa baseada em Multi-Armed Bandit (MAB) pa
 
 ### 2. Instalação
 Clone o repositório e navegue até a pasta:
-    git clone https://github.com/seu-usuario/datathon-7mlet-grupo-XX.git
-    cd datathon-7mlet-grupo-XX
+    git clone https://github.com/aliceborges/datathon-7mlet-grupo-75.git
+    cd datathon-7mlet-grupo-75
 
 Crie e ative o ambiente virtual:
     # Windows (PowerShell)
@@ -50,14 +50,10 @@ As variáveis principais usadas pelo projeto são `API_HOST`, `API_PORT`, `LOG_L
 Se quiser rodar a API localmente, exporte as variáveis necessárias e inicie o servidor:
 
 ```powershell
-$env:AZURE_OPENAI_API_KEY = "..."
-$env:AZURE_OPENAI_ENDPOINT = "https://<seu-recurso>.openai.azure.com"
-$env:AZURE_OPENAI_DEPLOYMENT = "gpt-4o-mini"
-$env:AZURE_OPENAI_API_VERSION = "2024-08-01-preview"
-$env:MLFLOW_TRACKING_URI = "http://localhost:5000"
-$env:CHAMPION_MODEL_NAME = "<nome-do-modelo>"
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
+
+Com a API no ar, a documentação interativa do Swagger fica em `http://localhost:8000/docs` e o schema OpenAPI em `http://localhost:8000/openapi.json`.
 
 Sem credenciais Azure OpenAI, o `/predict` continua funcionando com o stub de política, mas o `/agent` responde `503`.
 
