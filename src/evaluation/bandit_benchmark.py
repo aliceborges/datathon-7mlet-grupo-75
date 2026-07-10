@@ -132,6 +132,85 @@ class ThompsonSamplingPolicy:
         return codes
 
 
+@dataclass
+class NilosUCBPolicy:
+    arms: list[str]
+    counts: dict[str, int] = field(default_factory=dict)
+    rewards: dict[str, float] = field(default_factory=dict)
+    c: float = 1.0
+    total_rounds: int = 0
+    policy_version: str = "nilos-ucb-v1"
+
+    def __post_init__(self) -> None:
+        for arm in self.arms:
+            self.counts.setdefault(arm, 0)
+            self.rewards.setdefault(arm, 0.0)
+
+    def _ensure_arm(self, offer_id: str) -> None:
+        if offer_id not in self.counts:
+            self.counts[offer_id] = 0
+            self.rewards[offer_id] = 0.0
+            if offer_id not in self.arms:
+                self.arms.append(offer_id)
+
+    def recommend(
+        self,
+        context: CustomerContext,
+        candidates: list[str] | None = None,
+    ) -> tuple[OfferDecision, list[OfferDecision]]:
+        pool = candidates or self.arms
+        for offer_id in pool:
+            self._ensure_arm(offer_id)
+
+        scores: dict[str, float] = {}
+        t = self.total_rounds
+        for offer_id in pool:
+            n_a = self.counts[offer_id]
+            if n_a == 0:
+                scores[offer_id] = float("inf")
+            else:
+                mu_a = self.rewards[offer_id] / n_a
+                exploration_term = self.c * np.sqrt(np.log(max(1, t)) / n_a)
+                scores[offer_id] = float(mu_a + exploration_term)
+
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        chosen_offer, chosen_score = ranked[0]
+
+        score_val = float(np.clip(chosen_score, 0.0, 1.0)) if chosen_score != float("inf") else 1.0
+        chosen = OfferDecision(
+            offer_id=chosen_offer,
+            score=score_val,
+            reason_codes=self._reason_codes_for(context, chosen_offer),
+        )
+        alternatives = [
+            OfferDecision(
+                offer_id=offer,
+                score=float(np.clip(score, 0.0, 1.0)) if score != float("inf") else 1.0
+            )
+            for offer, score in ranked[1:]
+        ]
+        return chosen, alternatives
+
+    def update(self, offer_id: str, reward: float) -> None:
+        self._ensure_arm(offer_id)
+        self.counts[offer_id] += 1
+        self.rewards[offer_id] += reward
+        self.total_rounds += 1
+
+    def is_cold_start(self, offer_id: str) -> bool:
+        return offer_id not in self.counts or self.counts[offer_id] == 0
+
+    def _reason_codes_for(self, context: CustomerContext, offer_id: str) -> list[str]:
+        codes = [f"nilos_ucb(c={self.c},rounds={self.total_rounds})"]
+        if context.age >= 60:
+            codes.append("senior_segment")
+        if context.balance is not None and context.balance > 5000:
+            codes.append("high_balance")
+        if offer_id.startswith("loan") and context.housing:
+            codes.append("housing_loan_synergy")
+        return codes
+
+
 @dataclass(frozen=True)
 class BanditScenario:
     context: CustomerContext

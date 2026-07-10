@@ -76,11 +76,12 @@ Execute os testes de fumaça e da API para confirmar que o ambiente está consis
 Se preferir uma execução mais ampla, rode `pytest` na raiz do repositório.
 
 ## Mapa de Pastas
-* data/: Bases do Kaggle originais, camada processada, golden set e corpus RAG; `data/synthetic_enrichment/` fica reservado para artefatos sintéticos das etapas seguintes.
-* docs/: Documentação de API, arquitetura Azure, benchmark e MLOps.
+* data/: Bases do Kaggle originais, camada processada, golden set e corpus RAG; `data/synthetic_enrichment/` contém os artefatos sintéticos gerados (`offer_catalog.csv`, `offer_events.csv` e `delayed_rewards.csv`) para a experimentação adaptativa.
+* docs/: Documentação de API, arquitetura Azure, benchmark, MLOps, Model Card, System Card e LGPD Plan.
 * notebooks/: Análise Exploratória de Dados (EDA).
+* reports/: Relatório de geração de dados sintéticos ([data-generation.md](file:///c:/code/datathon-7mlet-grupo-75/reports/data-generation.md)).
 * src/: Código-fonte principal, incluindo API, agentes, modelos e camadas de segurança/monitoramento.
-* tasks/: Plano incremental do projeto e critérios de cada etapa.
+* tasks/: Plano incremental de entregas da Etapa 0 à Etapa 8 totalmente desenvolvido.
 * tests/: Suíte de testes unitários e de integração (pytest).
 
 ## Limitações Conhecidas

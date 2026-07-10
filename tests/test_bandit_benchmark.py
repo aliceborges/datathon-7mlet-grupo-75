@@ -7,9 +7,11 @@ from src.evaluation.bandit_benchmark import (
     BanditScenario,
     DeterministicBaselinePolicy,
     ThompsonSamplingPolicy,
+    NilosUCBPolicy,
     compare_bandit_policies,
     simulate_bandit_policy,
 )
+
 
 
 def _scenarios_for_regression() -> list[BanditScenario]:
@@ -128,3 +130,33 @@ class TestBanditSimulation:
         assert result["delta"]["regret"] == pytest.approx(0.0)
         assert result["delta"]["exploration_rate"] == pytest.approx(1 / 3)
         assert result["delta"]["cold_start_rate"] == pytest.approx(2 / 3)
+
+
+class TestNilosUCBPolicy:
+    def test_cold_start_is_cleared_after_update(self):
+        policy = NilosUCBPolicy(arms=["new_offer"])
+        assert policy.is_cold_start("new_offer") is True
+        policy.update("new_offer", 1.0)
+        assert policy.is_cold_start("new_offer") is False
+
+    def test_recommend_returns_ucb_scores(self):
+        context = CustomerContext(customer_id="C1", age=30)
+        policy = NilosUCBPolicy(arms=["arm1", "arm2"], c=1.0)
+
+        # When counts are 0, scores should be float("inf"), choosing the first (clipped to 1.0)
+        chosen, alternatives = policy.recommend(context)
+        assert chosen.score == 1.0
+
+        # After updating both arms
+        policy.update("arm1", 1.0)
+        policy.update("arm2", 0.0)
+
+        # arm1: count = 1, rewards = 1.0. arm2: count = 1, rewards = 0.0. total_rounds = 2.
+        # Score arm1: 1.0/1 + 1.0 * sqrt(log(2)/1) = 1.0 + sqrt(log(2)) (clipped to 1.0)
+        # Score arm2: 0.0/1 + 1.0 * sqrt(log(2)/1) = sqrt(log(2)) ≈ 0.8325
+        chosen, alternatives = policy.recommend(context)
+        assert chosen.offer_id == "arm1"
+        assert chosen.score == 1.0
+        assert alternatives[0].offer_id == "arm2"
+        assert alternatives[0].score == pytest.approx(0.8325, abs=1e-3)
+
