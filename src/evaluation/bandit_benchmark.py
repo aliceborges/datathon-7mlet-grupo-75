@@ -8,7 +8,6 @@ import numpy as np
 
 from src.api.schemas import CustomerContext, OfferDecision
 
-
 DEFAULT_HISTORICAL_CONVERSION = {
     "loan_personal": 0.014,
     "loan_payroll": 0.029,
@@ -57,7 +56,9 @@ class DeterministicBaselinePolicy:
             score=ranked[0][1],
             reason_codes=["deterministic_baseline", "highest_historical_conversion"],
         )
-        alternatives = [OfferDecision(offer_id=offer, score=score) for offer, score in ranked[1:]]
+        alternatives = [
+            OfferDecision(offer_id=offer, score=score) for offer, score in ranked[1:]
+        ]
         return chosen, alternatives
 
     def update(self, offer_id: str, reward: float) -> None:
@@ -108,7 +109,9 @@ class ThompsonSamplingPolicy:
             score=chosen_score,
             reason_codes=self._reason_codes_for(context, chosen_offer),
         )
-        alternatives = [OfferDecision(offer_id=offer, score=score) for offer, score in ranked[1:]]
+        alternatives = [
+            OfferDecision(offer_id=offer, score=score) for offer, score in ranked[1:]
+        ]
         return chosen, alternatives
 
     def update(self, offer_id: str, reward: float) -> None:
@@ -119,7 +122,9 @@ class ThompsonSamplingPolicy:
             self.beta[offer_id] += 1.0
 
     def is_cold_start(self, offer_id: str) -> bool:
-        return offer_id not in self.alpha or (self.alpha[offer_id] == 1.0 and self.beta[offer_id] == 1.0)
+        return offer_id not in self.alpha or (
+            self.alpha[offer_id] == 1.0 and self.beta[offer_id] == 1.0
+        )
 
     def _reason_codes_for(self, context: CustomerContext, offer_id: str) -> list[str]:
         codes = [f"thompson_sampling(seed={self.seed})"]
@@ -176,7 +181,11 @@ class NilosUCBPolicy:
         ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
         chosen_offer, chosen_score = ranked[0]
 
-        score_val = float(np.clip(chosen_score, 0.0, 1.0)) if chosen_score != float("inf") else 1.0
+        score_val = (
+            float(np.clip(chosen_score, 0.0, 1.0))
+            if chosen_score != float("inf")
+            else 1.0
+        )
         chosen = OfferDecision(
             offer_id=chosen_offer,
             score=score_val,
@@ -185,7 +194,7 @@ class NilosUCBPolicy:
         alternatives = [
             OfferDecision(
                 offer_id=offer,
-                score=float(np.clip(score, 0.0, 1.0)) if score != float("inf") else 1.0
+                score=float(np.clip(score, 0.0, 1.0)) if score != float("inf") else 1.0,
             )
             for offer, score in ranked[1:]
         ]
@@ -261,24 +270,38 @@ class BanditSimulationSummary:
     def exploration_rate(self) -> float:
         if not self.rounds:
             return 0.0
-        return sum(round_result.exploration for round_result in self.rounds) / self.total_rounds
+        return (
+            sum(round_result.exploration for round_result in self.rounds)
+            / self.total_rounds
+        )
 
     @property
     def cold_start_rate(self) -> float:
         if not self.rounds:
             return 0.0
-        return sum(round_result.cold_start for round_result in self.rounds) / self.total_rounds
+        return (
+            sum(round_result.cold_start for round_result in self.rounds)
+            / self.total_rounds
+        )
 
     @property
     def avg_reward_delay_days(self) -> float:
-        delays = [round_result.reward_delay_days for round_result in self.rounds if round_result.reward_delay_days is not None]
+        delays = [
+            round_result.reward_delay_days
+            for round_result in self.rounds
+            if round_result.reward_delay_days is not None
+        ]
         return float(mean(delays)) if delays else 0.0
 
     @property
     def delayed_reward_rate(self) -> float:
         if not self.rounds:
             return 0.0
-        delayed_rewards = [round_result for round_result in self.rounds if round_result.reward_delay_days not in (None, 0)]
+        delayed_rewards = [
+            round_result
+            for round_result in self.rounds
+            if round_result.reward_delay_days not in (None, 0)
+        ]
         return len(delayed_rewards) / self.total_rounds
 
     def to_dict(self) -> dict[str, float | str | int]:
@@ -321,10 +344,14 @@ def simulate_bandit_policy(
             scenario.candidate_offers,
             getattr(policy, "historical_conversion", scenario.true_conversion_by_offer),
         )
-        best_offer = _best_offer(scenario.candidate_offers, scenario.true_conversion_by_offer)
+        best_offer = _best_offer(
+            scenario.candidate_offers, scenario.true_conversion_by_offer
+        )
         probability = float(scenario.true_conversion_by_offer.get(chosen.offer_id, 0.0))
         reward = float(rng.random() < probability)
-        regret = float(scenario.true_conversion_by_offer.get(best_offer, 0.0) - probability)
+        regret = float(
+            scenario.true_conversion_by_offer.get(best_offer, 0.0) - probability
+        )
         exploration = chosen.offer_id != baseline_offer
         cold_start = policy.is_cold_start(chosen.offer_id)
         reward_delay_days = scenario.reward_delay_by_offer.get(chosen.offer_id)

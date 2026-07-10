@@ -20,9 +20,11 @@ from src.evaluation.bandit_benchmark import (
     compare_bandit_policies,
 )
 
-
 GOLDEN_SET_PATH = (
-    Path(__file__).resolve().parents[2] / "data" / "golden_set" / "evaluation_cases.jsonl"
+    Path(__file__).resolve().parents[2]
+    / "data"
+    / "golden_set"
+    / "evaluation_cases.jsonl"
 )
 
 
@@ -41,7 +43,7 @@ class GoldenSetCase:
     risk_flags: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "GoldenSetCase":
+    def from_payload(cls, payload: dict[str, Any]) -> GoldenSetCase:
         return cls(
             case_id=str(payload["case_id"]),
             segment=str(payload["segment"]),
@@ -51,7 +53,9 @@ class GoldenSetCase:
             expected_reward=float(payload["expected_reward"]),
             justification=str(payload["justification"]),
             pass_criteria=str(payload["pass_criteria"]),
-            policy_should_not_be_used=bool(payload.get("policy_should_not_be_used", False)),
+            policy_should_not_be_used=bool(
+                payload.get("policy_should_not_be_used", False)
+            ),
             sensitivity_probe=dict(payload.get("sensitivity_probe", {})),
             risk_flags=list(payload.get("risk_flags", [])),
         )
@@ -111,7 +115,9 @@ class OfflineGoldenSetSummary:
         return {
             "baseline": self.baseline.to_dict(),
             "adaptive": self.adaptive.to_dict(),
-            "policy_should_not_be_used_cases": list(self.policy_should_not_be_used_cases),
+            "policy_should_not_be_used_cases": list(
+                self.policy_should_not_be_used_cases
+            ),
         }
 
 
@@ -120,14 +126,18 @@ def load_golden_set_cases(path: Path = GOLDEN_SET_PATH) -> list[GoldenSetCase]:
         raise FileNotFoundError(f"Golden set nao encontrado: {path}")
 
     cases: list[GoldenSetCase] = []
-    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for line_number, raw_line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         stripped = raw_line.strip()
         if not stripped:
             continue
         payload = json.loads(stripped)
         case = GoldenSetCase.from_payload(payload)
         if not case.candidate_offers:
-            raise ValueError(f"case {case.case_id} sem candidate_offers na linha {line_number}")
+            raise ValueError(
+                f"case {case.case_id} sem candidate_offers na linha {line_number}"
+            )
         cases.append(case)
 
     return cases
@@ -147,7 +157,9 @@ def _build_scenarios(cases: list[GoldenSetCase]) -> list[BanditScenario]:
     ]
 
 
-def _fresh_policy(policy_version: str, candidate_offers: list[str], seed: int) -> BanditPolicy:
+def _fresh_policy(
+    policy_version: str, candidate_offers: list[str], seed: int
+) -> BanditPolicy:
     if policy_version == DeterministicBaselinePolicy().policy_version:
         return DeterministicBaselinePolicy()
     return ThompsonSamplingPolicy(arms=list(dict.fromkeys(candidate_offers)), seed=seed)
@@ -271,7 +283,9 @@ def run_offline_evaluation(
         seed=seed,
     )
 
-    policy_should_not_be_used_cases = [case.case_id for case in cases if case.policy_should_not_be_used]
+    policy_should_not_be_used_cases = [
+        case.case_id for case in cases if case.policy_should_not_be_used
+    ]
     return OfflineGoldenSetSummary(
         baseline=baseline,
         adaptive=adaptive,
@@ -308,11 +322,13 @@ def render_markdown_report(summary: OfflineGoldenSetSummary) -> str:
             f"| {segment} | {summary.baseline.segment_exposure.get(segment, 0.0):.3f} | {summary.adaptive.segment_exposure.get(segment, 0.0):.3f} |"
         )
 
-    lines.extend([
-        "",
-        "## Out of scope cases",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Out of scope cases",
+            "",
+        ]
+    )
 
     if summary.policy_should_not_be_used_cases:
         for case_id in summary.policy_should_not_be_used_cases:
@@ -324,10 +340,14 @@ def render_markdown_report(summary: OfflineGoldenSetSummary) -> str:
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the offline golden set evaluation.")
+    parser = argparse.ArgumentParser(
+        description="Run the offline golden set evaluation."
+    )
     parser.add_argument("--path", type=Path, default=GOLDEN_SET_PATH)
     parser.add_argument("--seed", type=int, default=75)
-    parser.add_argument("--json", action="store_true", help="Print the raw JSON summary.")
+    parser.add_argument(
+        "--json", action="store_true", help="Print the raw JSON summary."
+    )
     return parser
 
 

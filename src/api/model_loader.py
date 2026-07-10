@@ -6,8 +6,8 @@ import logging
 import os
 import socket
 from dataclasses import dataclass, field
-from urllib.parse import urlparse
 from typing import Protocol
+from urllib.parse import urlparse
 
 import numpy as np
 

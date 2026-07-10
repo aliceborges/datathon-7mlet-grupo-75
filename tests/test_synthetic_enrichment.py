@@ -23,7 +23,14 @@ def _sample_source_df() -> pd.DataFrame:
                 "management",
                 "admin.",
             ],
-            "marital": ["married", "single", "married", "single", "divorced", "married"],
+            "marital": [
+                "married",
+                "single",
+                "married",
+                "single",
+                "divorced",
+                "married",
+            ],
             "education": [
                 "university.degree",
                 "high.school",
@@ -32,7 +39,14 @@ def _sample_source_df() -> pd.DataFrame:
                 "university.degree",
                 "basic.4y",
             ],
-            "contact": ["cellular", "telephone", "cellular", "telephone", "cellular", "cellular"],
+            "contact": [
+                "cellular",
+                "telephone",
+                "cellular",
+                "telephone",
+                "cellular",
+                "cellular",
+            ],
             "campaign": [1, 2, 1, 3, 1, 2],
             "y": ["yes", "no", "no", "yes", "no", "yes"],
         }

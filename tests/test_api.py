@@ -72,7 +72,9 @@ def test_startup_skips_agent_without_azure_credentials(monkeypatch, tmp_path):
     monkeypatch.setattr("src.api.main.build_default_pipeline", lambda: _FakePipeline())
     monkeypatch.setattr(
         "src.api.main.build_react_agent",
-        lambda tools: (_ for _ in ()).throw(AssertionError("build_react_agent should not be called")),
+        lambda tools: (_ for _ in ()).throw(
+            AssertionError("build_react_agent should not be called")
+        ),
     )
 
     from src.api.main import create_app

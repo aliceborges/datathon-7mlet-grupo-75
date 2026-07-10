@@ -34,13 +34,17 @@ class CustomerContext(BaseModel):
     job: str | None = Field(default=None, description="Profissão declarada.")
     marital: str | None = Field(default=None, description="Estado civil.")
     education: str | None = Field(default=None, description="Nível de escolaridade.")
-    default: bool | None = Field(default=None, description="Histórico de inadimplência.")
+    default: bool | None = Field(
+        default=None, description="Histórico de inadimplência."
+    )
     housing: bool | None = Field(
         default=None, description="Possui financiamento imobiliário."
     )
     loan: bool | None = Field(default=None, description="Possui empréstimo pessoal.")
     balance: float | None = Field(default=None, description="Saldo médio da conta.")
-    contact: str | None = Field(default=None, description="Canal de contato preferencial.")
+    contact: str | None = Field(
+        default=None, description="Canal de contato preferencial."
+    )
     extras: dict[str, Any] = Field(
         default_factory=dict,
         description="Atributos adicionais não modelados explicitamente.",
@@ -79,7 +83,9 @@ class PredictRequest(BaseModel):
 
 class OfferDecision(BaseModel):
     offer_id: str = Field(..., description="Identificador da oferta recomendada.")
-    score: float = Field(..., ge=0.0, le=1.0, description="Score normalizado da decisão.")
+    score: float = Field(
+        ..., ge=0.0, le=1.0, description="Score normalizado da decisão."
+    )
     reason_codes: list[str] = Field(
         default_factory=list,
         description="Códigos curtos que explicam a decisão.",
@@ -110,13 +116,17 @@ class PredictResponse(BaseModel):
     )
 
     decision_id: str = Field(..., description="Identificador único da decisão.")
-    policy_version: str = Field(..., description="Versão da política usada na recomendação.")
+    policy_version: str = Field(
+        ..., description="Versão da política usada na recomendação."
+    )
     chosen: OfferDecision
     alternatives: list[OfferDecision] = Field(
         default_factory=list,
         description="Outras ofertas ordenadas por relevância.",
     )
-    served_at: datetime = Field(..., description="Timestamp UTC de geração da resposta.")
+    served_at: datetime = Field(
+        ..., description="Timestamp UTC de geração da resposta."
+    )
 
 
 class AgentRequest(BaseModel):
@@ -158,7 +168,9 @@ class AgentResponse(BaseModel):
     tools_used: list[str] = Field(
         default_factory=list, description="Tools efetivamente usadas."
     )
-    served_at: datetime = Field(..., description="Timestamp UTC de geração da resposta.")
+    served_at: datetime = Field(
+        ..., description="Timestamp UTC de geração da resposta."
+    )
 
 
 class ErrorResponse(BaseModel):

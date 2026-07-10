@@ -7,7 +7,6 @@ import pytest
 
 from data.make_dataset import process_telemarketing_data
 
-
 TRAIN_HEADER = (
     "id;age;job;marital;education;default;housing;loan;contact;month;"
     "day_of_week;campaign;pdays;previous;poutcome;emp.var.rate;cons.price.idx;"

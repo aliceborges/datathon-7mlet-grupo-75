@@ -98,7 +98,9 @@ def test_load_policy_skips_unreachable_tracking_uri_without_warning(
     def _fail_connection(*args, **kwargs):
         raise OSError("connection refused")
 
-    monkeypatch.setattr("src.api.model_loader.socket.create_connection", _fail_connection)
+    monkeypatch.setattr(
+        "src.api.model_loader.socket.create_connection", _fail_connection
+    )
 
     with caplog.at_level("INFO"):
         policy = load_policy()

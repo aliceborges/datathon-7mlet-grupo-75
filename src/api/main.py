@@ -11,9 +11,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.agent.rag_pipeline import build_default_pipeline
@@ -42,12 +42,17 @@ logger = logging.getLogger(__name__)
 def _load_environment() -> None:
     if os.environ.get("DISABLE_DOTENV") == "1":
         return
-    load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env", override=False)
+    load_dotenv(
+        dotenv_path=Path(__file__).resolve().parents[2] / ".env", override=False
+    )
 
 
 def _missing_azure_openai_credentials() -> list[str]:
     missing: list[str] = []
-    if not (os.environ.get("AZURE_OPENAI_API_KEY") or os.environ.get("AZURE_OPENAI_AD_TOKEN")):
+    if not (
+        os.environ.get("AZURE_OPENAI_API_KEY")
+        or os.environ.get("AZURE_OPENAI_AD_TOKEN")
+    ):
         missing.append("AZURE_OPENAI_API_KEY ou AZURE_OPENAI_AD_TOKEN")
     if not os.environ.get("AZURE_OPENAI_ENDPOINT"):
         missing.append("AZURE_OPENAI_ENDPOINT")

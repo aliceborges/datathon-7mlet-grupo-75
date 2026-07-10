@@ -6,12 +6,11 @@ from src.api.schemas import CustomerContext
 from src.evaluation.bandit_benchmark import (
     BanditScenario,
     DeterministicBaselinePolicy,
-    ThompsonSamplingPolicy,
     NilosUCBPolicy,
+    ThompsonSamplingPolicy,
     compare_bandit_policies,
     simulate_bandit_policy,
 )
-
 
 
 def _scenarios_for_regression() -> list[BanditScenario]:
@@ -91,7 +90,9 @@ class TestThompsonSamplingPolicy:
 class TestBanditSimulation:
     def test_simulation_returns_expected_regression_metrics(self):
         scenarios = _scenarios_for_regression()
-        baseline = simulate_bandit_policy(scenarios, DeterministicBaselinePolicy(), seed=75)
+        baseline = simulate_bandit_policy(
+            scenarios, DeterministicBaselinePolicy(), seed=75
+        )
         adaptive = simulate_bandit_policy(
             scenarios,
             ThompsonSamplingPolicy(
@@ -159,4 +160,3 @@ class TestNilosUCBPolicy:
         assert chosen.score == 1.0
         assert alternatives[0].offer_id == "arm2"
         assert alternatives[0].score == pytest.approx(0.8325, abs=1e-3)
-
