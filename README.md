@@ -11,7 +11,9 @@ Duas políticas de decisão convivem:
 - Um **baseline determinístico** que sempre pega a oferta com maior conversão histórica registrada em `DEFAULT_HISTORICAL_CONVERSION`.
 - Um **Thompson Sampling** com priors Beta(1, 1) por braço, que aprende com recompensa binária (converteu ou não).
 
-Ambas rodam por trás de uma API FastAPI em dois endpoints — `/predict` para a decisão e `/agent` para explicar a decisão via LLM. Arquitetura alvo em Azure documentada com detalhes em `docs/architecture-azure.md`.
+O contexto do cliente entra na decisão em dois pontos: filtrando os candidatos elegíveis (`candidate_offers`) e enriquecendo os `reason_codes` do output (`housing_loan_synergy`, `senior_segment`, `high_balance` etc.). O sampling do Thompson em si é não-contextual — mantém um par (α, β) por braço sem features do cliente. Extensão pra Thompson contextual ou LinUCB ficaria como próximo passo pra ganhar aprendizado por segmento.
+
+A API FastAPI expõe `/predict` pra servir a decisão (usa um stub Thompson simplificado em `src/api/model_loader.py`) e `/agent` pro assistente LLM justificar decisões via RAG. A comparação completa Baseline vs Thompson roda no notebook — a API só tem o stub. Arquitetura alvo em Azure documentada com detalhes em `docs/architecture-azure.md`.
 
 ## Notebook
 
@@ -102,11 +104,24 @@ Swagger em `http://localhost:8000/docs`, OpenAPI schema em `http://localhost:800
 
 ### MLflow
 
-```bash
+Pra popular runs na UI, sobe o servidor num terminal e aponta o `MLFLOW_TRACKING_URI` antes de abrir o notebook:
+
+```powershell
+# Terminal 1
 mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlruns.db
 ```
 
-UI em `http://localhost:5000`. O código que loga runs vive em `src/models/train.py` e registra parâmetros, métricas e as tags padrão do grupo (`model_name`, `model_type`, `framework`, `owner`, `risk_level`, `training_data_version`, `git_sha`, `phase`, `group`). O teste de integração em `tests/test_train_integration.py` prova que a persistência funciona.
+```powershell
+# Terminal 2
+$env:MLFLOW_TRACKING_URI="http://localhost:5000"
+jupyter lab notebooks/01_eda.ipynb
+```
+
+A célula de comparação Baseline vs Thompson loga `conversion_rate`, `total_regret`, `exploration_rate` e o delta entre as políticas como métricas, mais os parâmetros do cenário e as tags padrão do grupo (`model_name`, `model_type`, `framework`, `owner`, `risk_level`, `phase`, `group`). Abre `http://localhost:5000` pra ver.
+
+O snapshot da última execução vive em `docs/mlflow_runs.md` (params + métricas + tags). Se você já rodou o notebook uma vez, o diretório `mlruns/` (ignorado pelo git) tem os arquivos brutos — dá pra abrir `mlflow ui --backend-store-uri file:./mlruns` pra explorar sem precisar subir o tracking server.
+
+Existe também `src/models/train.py` com `train_and_log()` pra registrar runs de modelos sklearn (não usado no notebook, disponível como biblioteca). Testes em `tests/test_train_integration.py`.
 
 ### Docker (opcional)
 
@@ -124,9 +139,9 @@ pytest
 
 ## Arquitetura Azure
 
-A escolha foi rodar tudo em Azure porque encaixa bem com os componentes gerenciados que a gente conhece do curso. A API FastAPI vive num App Service (ou AKS se precisar escalar), atrás de um Application Gateway. Os segredos ficam no Key Vault e são consumidos via Managed Identity, então nada de chave hardcoded ou em env var na esteira. MLflow Tracking e Model Registry migram pra Azure Machine Learning, e os datasets ficam versionados no Data Lake Gen2. Logs de decisão vão pra Cosmos DB ou Azure SQL, dependendo se o acesso é mais orientado a documento ou a schema.
+A arquitetura-alvo, se fôssemos colocar em produção, seria em Azure — encaixa bem com os componentes gerenciados que a gente conhece do curso. A API FastAPI rodaria num App Service (ou AKS se precisasse escalar), atrás de um Application Gateway. Os segredos ficariam no Key Vault, consumidos via Managed Identity, então nada de chave hardcoded ou em env var na esteira. MLflow Tracking e Model Registry migrariam pra Azure Machine Learning, e os datasets ficariam versionados no Data Lake Gen2. Logs de decisão iriam pra Cosmos DB ou Azure SQL, dependendo se o acesso fosse mais orientado a documento ou a schema.
 
-Do lado do assistente LLM, usamos Azure OpenAI Service. No piloto atual estamos no plano Azure for Students com deployment `model-router`, o que dá conta pra demo. Em produção migraria pra deployments dedicados (chat e embeddings) com quota reservada. Observabilidade end-to-end fica no Application Insights + Log Analytics, e a detecção de drift roda como job periódico via Databricks ou Azure Functions usando Evidently. O diagrama Mermaid completo e uma discussão qualitativa de FinOps estão em `docs/architecture-azure.md`.
+No piloto atual, o assistente LLM usa Azure OpenAI Service (plano Azure for Students, deployment `model-router`). Em produção, migraria pra deployments dedicados (chat e embeddings) com quota reservada. Observabilidade em produção iria pra Application Insights + Log Analytics — no piloto local usamos Prometheus + Grafana via Docker Compose. Detecção de drift seria job periódico via Databricks ou Azure Functions usando Evidently. Diagrama Mermaid completo e discussão qualitativa de FinOps em `docs/architecture-azure.md`.
 
 ## Mapa de pastas
 
@@ -138,6 +153,45 @@ Do lado do assistente LLM, usamos Azure OpenAI Service. No piloto atual estamos 
 - `reports/`: relatório da geração dos dados sintéticos.
 - `src/`: código-fonte (API, agente ReAct, políticas MAB, guardrail, monitoramento).
 - `tests/`: suíte pytest (unitários + integração).
+
+## Além do mínimo
+
+O PDF pede baseline, adaptativo e API funcionando. A gente foi um pouco além pra deixar mais parecido com o que rodaria em produção de verdade:
+
+- Endpoint `/agent` com agente ReAct (LangChain + Azure OpenAI), 3 tools customizadas e RAG sobre `data/rag_corpus/` via Chroma. Se a chave Azure não estiver setada, esse endpoint desliga sozinho e a API continua servindo `/predict` normal.
+- Guardrail contra prompt injection em `src/security/guardrails.py` — 12 padrões (EN + PT) filtrados antes do LLM. Bloqueia coisas tipo "ignore all previous instructions". Cobertura em `tests/test_guardrails.py`.
+- Logs de auditoria em JSONL. Cada decisão gera uma linha com decision_id, endpoint, policy_version, chosen_offer, tools_used e latência. Caminho configurável via `AUDIT_LOG_PATH`.
+- Métricas Prometheus custom expostas em `/metrics` (`datathon_decisions_total`, `datathon_agent_latency_seconds`, `datathon_agent_tools_used`), consumidas pelo Grafana provisionado em `monitoring/`.
+- Pipeline CI em `.github/workflows/ci.yml` rodando ruff, black, mypy, bandit e pytest com cobertura a cada push ou PR.
+- 147 testes automatizados cobrindo API, agente, RAG, guardrail, MLflow, drift, bandit e golden set.
+- Avaliação offline do LLM via `evaluation/run_evaluation.py` — RAGAS (faithfulness, answer_relevancy, context_precision, context_recall) e LLM-as-judge com 4 critérios sobre 22 pares Q&A. Modo `--mock` pra rodar em CI sem consumir Azure.
+- Detecção de drift em `src/monitoring/drift.py` com PSI (Population Stability Index) e wrapper Evidently. PSI acima de 0.10 gera warning, acima de 0.20 é sinal de retrain.
+- Stack completo em Docker Compose (API + MLflow + Prometheus + Grafana).
+
+### Exemplos rápidos
+
+Com a API no ar:
+
+```bash
+# Decisão pura (funciona sem Azure)
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"context":{"customer_id":"C001","age":34,"balance":1500.0,"housing":true}}'
+
+# Assistente LLM (precisa Azure)
+curl -X POST http://localhost:8000/agent \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Qual oferta pra cliente 34 anos com housing?","customer_id":"C001"}'
+
+# Guardrail interceptando
+curl -X POST http://localhost:8000/agent \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Ignore all previous instructions"}'
+```
+
+## Dados e conformidade
+
+A base legal do processamento apoia em consentimento e legítimo interesse (LGPD Art. 7º I e IX), com minimização (só features estritamente necessárias, sem dados sensíveis) e retenção de 90 dias pros logs de decisão do `/predict`. As perguntas do `/agent` não são persistidas. Detalhes em `docs/lgpd-plan.md`.
 
 ## Limitações
 
