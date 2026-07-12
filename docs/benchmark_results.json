@@ -1,0 +1,177 @@
+[
+  {
+    "config": {
+      "name": "baseline-cold",
+      "model": "gpt-4o-mini",
+      "temperature": 0.0,
+      "use_rag": true,
+      "max_iterations": 8
+    },
+    "n_runs": 5,
+    "avg_latency_ms": 14.36,
+    "avg_tools_used": 2,
+    "avg_answer_length": 106.4,
+    "runs": [
+      {
+        "question": "Quais ofertas são mais indicadas para clientes acima de 60 anos?",
+        "answer": "[mock][baseline-cold] resposta sintética para: Quais ofertas são mais indicadas para clientes acima de 60 a...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 6.922199987457134
+      },
+      {
+        "question": "Compare loan_personal e loan_payroll em termos de taxa e prazo.",
+        "answer": "[mock][baseline-cold] resposta sintética para: Compare loan_personal e loan_payroll em termos de taxa e pra...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 16.29790000151843
+      },
+      {
+        "question": "Qual oferta o cliente C001 deveria receber e por quê?",
+        "answer": "[mock][baseline-cold] resposta sintética para: Qual oferta o cliente C001 deveria receber e por quê?...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 16.015000001061708
+      },
+      {
+        "question": "Qual oferta tem maior CTR histórico no portfólio?",
+        "answer": "[mock][baseline-cold] resposta sintética para: Qual oferta tem maior CTR histórico no portfólio?...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 16.43460000923369
+      },
+      {
+        "question": "Em que situação faz sentido recomendar credit_card_gold em vez de loan_personal?",
+        "answer": "[mock][baseline-cold] resposta sintética para: Em que situação faz sentido recomendar credit_card_gold em v...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 16.126799993799068
+      }
+    ]
+  },
+  {
+    "config": {
+      "name": "baseline-warm",
+      "model": "gpt-4o-mini",
+      "temperature": 0.7,
+      "use_rag": true,
+      "max_iterations": 8
+    },
+    "n_runs": 5,
+    "avg_latency_ms": 30.18,
+    "avg_tools_used": 2,
+    "avg_answer_length": 106.4,
+    "runs": [
+      {
+        "question": "Quais ofertas são mais indicadas para clientes acima de 60 anos?",
+        "answer": "[mock][baseline-warm] resposta sintética para: Quais ofertas são mais indicadas para clientes acima de 60 a...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 31.92280000075698
+      },
+      {
+        "question": "Compare loan_personal e loan_payroll em termos de taxa e prazo.",
+        "answer": "[mock][baseline-warm] resposta sintética para: Compare loan_personal e loan_payroll em termos de taxa e pra...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 32.14239999942947
+      },
+      {
+        "question": "Qual oferta o cliente C001 deveria receber e por quê?",
+        "answer": "[mock][baseline-warm] resposta sintética para: Qual oferta o cliente C001 deveria receber e por quê?...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 31.78059999481775
+      },
+      {
+        "question": "Qual oferta tem maior CTR histórico no portfólio?",
+        "answer": "[mock][baseline-warm] resposta sintética para: Qual oferta tem maior CTR histórico no portfólio?...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 24.33770000061486
+      },
+      {
+        "question": "Em que situação faz sentido recomendar credit_card_gold em vez de loan_personal?",
+        "answer": "[mock][baseline-warm] resposta sintética para: Em que situação faz sentido recomendar credit_card_gold em v...",
+        "tools_used": [
+          "tool_0",
+          "tool_1"
+        ],
+        "latency_ms": 30.708400008734316
+      }
+    ]
+  },
+  {
+    "config": {
+      "name": "no-rag-cold",
+      "model": "gpt-4o-mini",
+      "temperature": 0.0,
+      "use_rag": false,
+      "max_iterations": 8
+    },
+    "n_runs": 5,
+    "avg_latency_ms": 16.04,
+    "avg_tools_used": 1,
+    "avg_answer_length": 104.4,
+    "runs": [
+      {
+        "question": "Quais ofertas são mais indicadas para clientes acima de 60 anos?",
+        "answer": "[mock][no-rag-cold] resposta sintética para: Quais ofertas são mais indicadas para clientes acima de 60 a...",
+        "tools_used": [
+          "tool_0"
+        ],
+        "latency_ms": 15.952800007653423
+      },
+      {
+        "question": "Compare loan_personal e loan_payroll em termos de taxa e prazo.",
+        "answer": "[mock][no-rag-cold] resposta sintética para: Compare loan_personal e loan_payroll em termos de taxa e pra...",
+        "tools_used": [
+          "tool_0"
+        ],
+        "latency_ms": 16.229100001510233
+      },
+      {
+        "question": "Qual oferta o cliente C001 deveria receber e por quê?",
+        "answer": "[mock][no-rag-cold] resposta sintética para: Qual oferta o cliente C001 deveria receber e por quê?...",
+        "tools_used": [
+          "tool_0"
+        ],
+        "latency_ms": 16.069099991000257
+      },
+      {
+        "question": "Qual oferta tem maior CTR histórico no portfólio?",
+        "answer": "[mock][no-rag-cold] resposta sintética para: Qual oferta tem maior CTR histórico no portfólio?...",
+        "tools_used": [
+          "tool_0"
+        ],
+        "latency_ms": 15.711100000771694
+      },
+      {
+        "question": "Em que situação faz sentido recomendar credit_card_gold em vez de loan_personal?",
+        "answer": "[mock][no-rag-cold] resposta sintética para: Em que situação faz sentido recomendar credit_card_gold em v...",
+        "tools_used": [
+          "tool_0"
+        ],
+        "latency_ms": 16.23259999905713
+      }
+    ]
+  }
+]

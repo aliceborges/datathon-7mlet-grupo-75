@@ -13,8 +13,9 @@ from src.models.train import train_and_log
 
 
 @pytest.fixture
-def isolated_mlflow_dir(tmp_path: Path) -> Path:
+def isolated_mlflow_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     """Isola tracking MLflow em diretório temporário do pytest."""
+    monkeypatch.setenv("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_tracking_uri(f"file:{tmp_path}")
     yield tmp_path
     shutil.rmtree(tmp_path, ignore_errors=True)

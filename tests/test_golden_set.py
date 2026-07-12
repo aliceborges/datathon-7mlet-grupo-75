@@ -1,62 +1,37 @@
 from __future__ import annotations
 
-from evaluation.golden_set import (
-    DEFAULT_PATH,
-    GoldenSample,
-    count_by_category,
-    load_golden_set,
+from src.evaluation.offline_golden_set import (
+    GOLDEN_SET_PATH,
+    load_golden_set_cases,
+    render_markdown_report,
+    run_offline_evaluation,
 )
 
 
-def test_golden_set_file_exists():
-    assert DEFAULT_PATH.exists(), f"Golden set não encontrado em {DEFAULT_PATH}"
+def test_golden_set_has_minimum_coverage():
+    cases = load_golden_set_cases(GOLDEN_SET_PATH)
+
+    assert len(cases) >= 20
+    assert any(case.policy_should_not_be_used for case in cases)
+    assert any(case.segment == "senior_affluent" for case in cases)
+    assert all(case.justification for case in cases)
+    assert all(case.pass_criteria for case in cases)
 
 
-def test_golden_set_has_at_least_twenty_samples():
-    samples = load_golden_set()
-    assert len(samples) >= 20
+def test_offline_evaluation_is_reproducible():
+    first = run_offline_evaluation(seed=75)
+    second = run_offline_evaluation(seed=75)
+
+    assert first.to_dict() == second.to_dict()
+    assert first.baseline.total_cases == first.adaptive.total_cases
+    assert first.baseline.total_cases >= 20
 
 
-def test_each_sample_has_required_fields():
-    samples = load_golden_set()
-    for s in samples:
-        assert s.id
-        assert s.query
-        assert s.expected_answer
-        assert isinstance(s.contexts, list)
-        assert isinstance(s.expected_tools, list)
+def test_offline_evaluation_reports_fairness_and_sensitivity():
+    summary = run_offline_evaluation(seed=75)
+    report = render_markdown_report(summary)
 
-
-def test_sample_ids_are_unique():
-    samples = load_golden_set()
-    ids = [s.id for s in samples]
-    assert len(set(ids)) == len(ids)
-
-
-def test_categories_cover_multiple_types():
-    samples = load_golden_set()
-    coverage = count_by_category(samples)
-    # pelo menos 4 categorias distintas
-    assert len(coverage) >= 4
-
-
-def test_count_by_category_sums_to_total():
-    samples = load_golden_set()
-    coverage = count_by_category(samples)
-    assert sum(coverage.values()) == len(samples)
-
-
-def test_contexts_are_non_empty_for_most_samples():
-    samples = load_golden_set()
-    with_contexts = [s for s in samples if s.contexts]
-    # pelo menos 80% das amostras devem ter contexto
-    assert len(with_contexts) / len(samples) >= 0.8
-
-
-def test_golden_sample_is_frozen():
-    sample = GoldenSample(id="t1", query="q", expected_answer="a")
-    try:
-        sample.id = "outro"  # type: ignore[misc]
-    except Exception:
-        return
-    raise AssertionError("GoldenSample deveria ser imutável (frozen)")
+    assert summary.baseline.fairness_gap >= 0.0
+    assert summary.adaptive.sensitivity_flip_rate >= 0.0
+    assert "Offline Golden Set Evaluation" in report
+    assert "Out of scope cases" in report

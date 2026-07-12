@@ -87,3 +87,23 @@ def test_load_policy_falls_back_when_mlflow_fails(monkeypatch):
     monkeypatch.setenv("CHAMPION_MODEL_NAME", "nonexistent_model")
     policy = load_policy()
     assert isinstance(policy, ThompsonSamplingStub)
+
+
+def test_load_policy_skips_unreachable_tracking_uri_without_warning(
+    monkeypatch, caplog
+):
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    monkeypatch.setenv("CHAMPION_MODEL_NAME", "nonexistent_model")
+
+    def _fail_connection(*args, **kwargs):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(
+        "src.api.model_loader.socket.create_connection", _fail_connection
+    )
+
+    with caplog.at_level("INFO"):
+        policy = load_policy()
+
+    assert isinstance(policy, ThompsonSamplingStub)
+    assert not any(record.levelname == "WARNING" for record in caplog.records)

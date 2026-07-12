@@ -8,8 +8,10 @@ import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -37,9 +39,32 @@ from src.security.guardrails import InputGuardrail
 logger = logging.getLogger(__name__)
 
 
+def _load_environment() -> None:
+    if os.environ.get("DISABLE_DOTENV") == "1":
+        return
+    load_dotenv(
+        dotenv_path=Path(__file__).resolve().parents[2] / ".env", override=False
+    )
+
+
+def _missing_azure_openai_credentials() -> list[str]:
+    missing: list[str] = []
+    if not (
+        os.environ.get("AZURE_OPENAI_API_KEY")
+        or os.environ.get("AZURE_OPENAI_AD_TOKEN")
+    ):
+        missing.append("AZURE_OPENAI_API_KEY ou AZURE_OPENAI_AD_TOKEN")
+    if not os.environ.get("AZURE_OPENAI_ENDPOINT"):
+        missing.append("AZURE_OPENAI_ENDPOINT")
+    if not os.environ.get("AZURE_OPENAI_DEPLOYMENT"):
+        missing.append("AZURE_OPENAI_DEPLOYMENT")
+    return missing
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     """Inicializa policy, RAG, tools, agente e audit logger no startup."""
+    _load_environment()
     log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
     logging.basicConfig(
         level=log_level,
@@ -53,16 +78,23 @@ async def _lifespan(app: FastAPI):
         "guardrail": InputGuardrail(),
     }
 
-    try:
-        rag = build_default_pipeline()
-        tools = build_default_tools(retriever=rag)
-        resources["agent"] = build_react_agent(tools)
-        logger.info("Agente ReAct inicializado")
-    except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "Agente indisponível (provavelmente faltam credenciais Azure OpenAI): %s",
-            exc,
+    rag = build_default_pipeline()
+    tools = build_default_tools(retriever=rag)
+    missing_credentials = _missing_azure_openai_credentials()
+    if missing_credentials:
+        logger.info(
+            "Agente ReAct desativado: credenciais Azure OpenAI ausentes (%s)",
+            ", ".join(missing_credentials),
         )
+    else:
+        try:
+            resources["agent"] = build_react_agent(tools)
+            logger.info("Agente ReAct inicializado")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Agente indisponível durante a inicialização; mantendo a API em modo degradado: %s",
+                exc,
+            )
 
     app.state.resources = resources
     yield
@@ -73,16 +105,32 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Datathon Grupo 75 - API de Decisão",
         version="0.1.0",
+        summary="API de recomendação de ofertas e agente ReAct para explicações.",
+        description=(
+            "Serviço FastAPI que expõe uma política de recomendação para ofertas "
+            "e um endpoint conversacional para justificar decisões. A documentação "
+            "interativa fica disponível em /docs e o schema OpenAPI em /openapi.json."
+        ),
         lifespan=_lifespan,
     )
 
     Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
-    @app.get("/health/live", tags=["meta"])
+    @app.get(
+        "/health/live",
+        tags=["meta"],
+        summary="Liveness check",
+        description="Verifica se o processo da API está vivo.",
+    )
     async def live() -> dict[str, Any]:
         return {"status": "alive", "version": app.version}
 
-    @app.get("/health/ready", tags=["meta"])
+    @app.get(
+        "/health/ready",
+        tags=["meta"],
+        summary="Readiness check",
+        description="Verifica se policy, audit logger e agente foram inicializados.",
+    )
     async def ready() -> JSONResponse:
         resources = getattr(app.state, "resources", {})
         checks = {
@@ -105,6 +153,11 @@ def create_app() -> FastAPI:
         response_model=PredictResponse,
         responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
         tags=["decision"],
+        summary="Gerar recomendação",
+        description=(
+            "Executa a política de recomendação e retorna a oferta escolhida, "
+            "alternativas e metadados de auditoria."
+        ),
     )
     async def predict(req: PredictRequest) -> PredictResponse:
         policy = app.state.resources["policy"]
@@ -150,6 +203,11 @@ def create_app() -> FastAPI:
             500: {"model": ErrorResponse},
         },
         tags=["decision"],
+        summary="Perguntar ao agente",
+        description=(
+            "Encaminha uma pergunta ao agente ReAct com guardrails de entrada e "
+            "retorna a resposta textual com as tools usadas."
+        ),
     )
     async def agent_qa(req: AgentRequest) -> AgentResponse:
         guardrail = app.state.resources["guardrail"]
