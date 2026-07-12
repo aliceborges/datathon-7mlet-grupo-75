@@ -18,8 +18,8 @@ Plataforma de experimentação adaptativa baseada em Multi-Armed Bandit (MAB) pa
 
 ### 2. Instalação
 Clone o repositório e navegue até a pasta:
-    git clone https://github.com/seu-usuario/datathon-7mlet-grupo-XX.git
-    cd datathon-7mlet-grupo-XX
+    git clone https://github.com/aliceborges/datathon-7mlet-grupo-75.git
+    cd datathon-7mlet-grupo-75
 
 Crie e ative o ambiente virtual:
     # Windows (PowerShell)
@@ -44,7 +44,20 @@ Copie o arquivo de configuração de exemplo e preencha as credenciais necessár
     # Linux/macOS
     cp .env.example .env
 
-### 4. Ingestão de Dados (Kaggle)
+As variáveis principais usadas pelo projeto são `API_HOST`, `API_PORT`, `LOG_LEVEL`, `AUDIT_LOG_PATH`, `MLFLOW_TRACKING_URI`, `CHAMPION_MODEL_NAME`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`, `AZURE_OPENAI_API_VERSION` e `LLM_TEMPERATURE`.
+
+### 4. Subida da API
+Se quiser rodar a API localmente, exporte as variáveis necessárias e inicie o servidor:
+
+```powershell
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+Com a API no ar, a documentação interativa do Swagger fica em `http://localhost:8000/docs` e o schema OpenAPI em `http://localhost:8000/openapi.json`.
+
+Sem credenciais Azure OpenAI, o `/predict` continua funcionando com o stub de política, mas o `/agent` responde `503`.
+
+### 5. Ingestão de Dados (Kaggle)
 O projeto requer a base de dados original para alimentar o pipeline de processamento.
 1. Acesse o link: https://www.kaggle.com/datasets/aguado/telemarketing-jyb-dataset/data
 2. Baixe os arquivos `train.csv` e `test.csv`.
@@ -54,28 +67,26 @@ O projeto requer a base de dados original para alimentar o pipeline de processam
 
 Os arquivos limpos (`train_clean.csv` e `test_clean.csv`) serão gerados automaticamente na pasta `data/processed/`.
 
-### 5. Geração de Enriquecimento Sintético
-Após gerar os dados processados, crie os artefatos sintéticos executando:
-    python data/synthetic_enrichment/generate_synthetic_data.py --seed 42
-
-Isso cria:
-- `data/synthetic_enrichment/arm_catalog.csv`
-- `data/synthetic_enrichment/contexts.csv`
-- `data/synthetic_enrichment/impressions.csv`
-
 ### 6. Validação Inicial
-Execute a suíte de testes para garantir que o ambiente está configurado corretamente:
-    pytest
+Execute os testes de fumaça e da API para confirmar que o ambiente está consistente:
+
+    pytest tests/test_smoke.py
+    pytest tests/test_api.py -q
+
+Se preferir uma execução mais ampla, rode `pytest` na raiz do repositório.
 
 ## Mapa de Pastas
-* data/: Diretório de dados contendo as bases do Kaggle originais, processadas, enriquecimento sintético e o golden set (arquivos de dados brutos são ignorados pelo repositório).
-* docs/: Documentação de arquitetura Azure, governança e planos LGPD.
-* notebooks/: Análise Exploratória de Dados (EDA) e protótipos de simulação.
-* reports/: Relatórios técnicos de geração de dados e experimentação.
-* src/: Código-fonte principal, incluindo API, modelos algorítmicos e integração com LLM.
+* data/: Bases do Kaggle originais, camada processada, golden set e corpus RAG; `data/synthetic_enrichment/` contém os artefatos sintéticos gerados (`offer_catalog.csv`, `offer_events.csv` e `delayed_rewards.csv`) para a experimentação adaptativa.
+* docs/: Documentação de API, arquitetura Azure, benchmark, MLOps, Model Card, System Card e LGPD Plan.
+* notebooks/: Análise Exploratória de Dados (EDA).
+* reports/: Relatório de geração de dados sintéticos ([data-generation.md](file:///c:/code/datathon-7mlet-grupo-75/reports/data-generation.md)).
+* src/: Código-fonte principal, incluindo API, agentes, modelos e camadas de segurança/monitoramento.
+* tasks/: Plano incremental de entregas da Etapa 0 à Etapa 8 totalmente desenvolvido.
 * tests/: Suíte de testes unitários e de integração (pytest).
 
 ## Limitações Conhecidas
 * O projeto utiliza dados sintéticos baseados em conjuntos públicos do Kaggle e não processa dados reais de clientes (PII).
-* A simulação de delayed rewards (recompensas atrasadas) assume hipóteses e sementes fixas que estão documentadas no relatório de geração de dados.
+* A API do agente depende de Azure OpenAI; sem essas credenciais, apenas o stub de recomendação fica disponível.
+* A camada processada do Kaggle remove `id`, `duration` e outras colunas auxiliares, e o preprocessing valida o schema final para evitar vazamento temporal.
+* A simulação de delayed rewards (recompensas atrasadas) assume hipóteses e sementes fixas documentadas nas etapas de experimento.
 * A plataforma foi desenvolvida para fins de experimentação em ambiente simulado e não atende, no seu estado atual, aos requisitos de latência para um sistema bancário de alta frequência em tempo real.
