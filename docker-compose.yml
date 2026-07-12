@@ -5,6 +5,8 @@ services:
     container_name: datathon-api
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - LOG_LEVEL=INFO
       - MLFLOW_TRACKING_URI=http://mlflow:5000
