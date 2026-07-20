@@ -88,20 +88,6 @@ O output vai pra `data/processed/` (`train_clean.csv`, `test_clean.csv`). Se qui
 python data/synthetic_enrichment/generator.py --seed 42
 ```
 
-### Abrir o notebook
-
-```bash
-jupyter lab notebooks/01_eda.ipynb
-```
-
-### Subir a API
-
-```powershell
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000
-```
-
-Swagger em `http://localhost:8000/docs`, OpenAPI schema em `http://localhost:8000/openapi.json`.
-
 ### MLflow
 
 Pra popular runs na UI, sobe o servidor num terminal e aponta o `MLFLOW_TRACKING_URI` antes de abrir o notebook:
@@ -122,6 +108,22 @@ A célula de comparação Baseline vs Thompson loga `conversion_rate`, `total_re
 O snapshot da última execução vive em `docs/mlflow_runs.md` (params + métricas + tags). Se você já rodou o notebook uma vez, o diretório `mlruns/` (ignorado pelo git) tem os arquivos brutos — dá pra abrir `mlflow ui --backend-store-uri file:./mlruns` pra explorar sem precisar subir o tracking server.
 
 Existe também `src/models/train.py` com `train_and_log()` pra registrar runs de modelos sklearn (não usado no notebook, disponível como biblioteca). Testes em `tests/test_train_integration.py`.
+
+### Abrir o notebook
+
+Sem MLflow rodando, dá pra abrir direto — os runs vão pra `mlruns/` local mesmo assim.
+
+```bash
+jupyter lab notebooks/01_eda.ipynb
+```
+
+### Subir a API
+
+```powershell
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+Swagger em `http://localhost:8000/docs`, OpenAPI schema em `http://localhost:8000/openapi.json`.
 
 ### Docker (opcional)
 
