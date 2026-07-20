@@ -243,6 +243,7 @@ data/**/*.csv
 !data/**/*.py
 !data/**/README.md
 !data/**/.gitkeep
+!data/golden_set/
 !data/golden_set/*.jsonl
 !data/rag_corpus/*.md
 *.pkl
@@ -253,3 +254,5 @@ data/**/*.csv
 logs/
 *.log
 mlruns/
+docs/evaluation_results*
+.claude/
